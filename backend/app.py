@@ -31,10 +31,10 @@ def create_app():
 
     return app
 
+# Top-level app instance for Vercel serverless deployment
+Config.validate()
+app = create_app()
+
 if __name__ == "__main__":
-    # Validate configuration on startup
-    Config.validate()
-    
-    app = create_app()
     print(f"Starting Flask server on port {Config.PORT} (Debug={Config.DEBUG})...")
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)

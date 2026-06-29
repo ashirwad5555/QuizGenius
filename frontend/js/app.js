@@ -3,7 +3,8 @@
 // ==========================================================================
 const CONFIG = {
     // API_URL: 'http://localhost:5000/api',
-    API_URL: 'http://10.94.119.134:5000/api',
+    // API_URL: 'http://10.94.119.134:5000/api',
+    API_URL: 'https://quizgenius-phi.vercel.app/api',
     CIRCUMFERENCE: 2 * Math.PI * 54 // 2 * pi * r (r=54 for score circle)
 };
 
@@ -244,7 +245,7 @@ function initEventListeners() {
 // ==========================================================================
 function showView(viewName) {
     state.currentView = viewName;
-    
+
     Object.keys(views).forEach(name => {
         if (name === viewName) {
             views[name].classList.add('active');
@@ -288,7 +289,7 @@ async function generateQuiz(topic, difficulty) {
         if (!response.ok) {
             const errDetails = data.details ? `Details: ${data.details}` : '';
             showError(
-                data.error || 'Generation Failed', 
+                data.error || 'Generation Failed',
                 data.message || 'An error occurred while building your quiz.',
                 errDetails
             );
@@ -401,7 +402,7 @@ function renderQuiz() {
     state.questions.forEach((q, qIdx) => {
         const questionCard = document.createElement('div');
         questionCard.className = 'question-card';
-        
+
         // Generate options HTML with keyboard accessibility (tabindex="0")
         const optionsHTML = q.options.map((opt, oIdx) => `
             <label class="option-label" id="label-q${qIdx}-o${oIdx}" tabindex="0" data-qidx="${qIdx}" data-oidx="${oIdx}">
@@ -528,7 +529,7 @@ function renderResults(score, viewPastQuizData = null) {
 
     resultsTopicDisplay.innerText = quizTopic;
     resultsDiffDisplay.innerText = quizDifficulty;
-    
+
     // 4. Trigger Celebration Confetti for good scores (>= 4) (Feature 9)
     if (score >= 4 && !viewPastQuizData) {
         triggerConfetti();
@@ -573,7 +574,7 @@ function renderResults(score, viewPastQuizData = null) {
     questions.forEach((q, qIdx) => {
         const reviewCard = document.createElement('div');
         const isCorrect = userAnswers[qIdx] === q.correctAnswer;
-        
+
         reviewCard.className = `review-card ${isCorrect ? 'correct-q' : 'incorrect-q'}`;
 
         const optionsHTML = q.options.map(opt => {
@@ -599,9 +600,9 @@ function renderResults(score, viewPastQuizData = null) {
         reviewCard.innerHTML = `
             <div class="review-status-header">
                 <span class="status-indicator">
-                    ${isCorrect 
-                        ? '<i class="fa-solid fa-circle-check"></i> Correct' 
-                        : '<i class="fa-solid fa-circle-xmark"></i> Incorrect'}
+                    ${isCorrect
+                ? '<i class="fa-solid fa-circle-check"></i> Correct'
+                : '<i class="fa-solid fa-circle-xmark"></i> Incorrect'}
                 </span>
                 <span class="text-muted">Question ${qIdx + 1} | ${escapeHtml(q.category || 'General')}</span>
             </div>
@@ -711,7 +712,7 @@ function copyExplanationsToClipboard() {
             if (isCorrect && isUser) marker = "[✓] (Your Correct Answer)";
             else if (isCorrect) marker = "[✓] (Correct Answer)";
             else if (isUser) marker = "[X] (Your Incorrect Answer)";
-            
+
             quizText += `  ${marker} ${opt}\n`;
         });
         quizText += `Explanation: ${q.explanation}\n\n`;
@@ -780,7 +781,7 @@ function getFirstUnansweredQuestionIndex() {
 
 function updateHistorySidebarUI() {
     historyList.innerHTML = '';
-    
+
     if (state.history.length === 0) {
         historyList.innerHTML = '<li class="empty-history-msg">No quizzes taken yet.</li>';
         clearHistoryBtn.style.display = 'none';
@@ -868,7 +869,7 @@ function triggerConfetti() {
     for (let i = 0; i < count; i++) {
         const piece = document.createElement('div');
         piece.className = 'confetti-piece';
-        
+
         // Randomize positions, colors, delays, and speeds
         const left = Math.random() * 100;
         const delay = Math.random() * 2;
@@ -901,9 +902,9 @@ function triggerConfetti() {
 // ==========================================================================
 function escapeHtml(unsafe) {
     return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
