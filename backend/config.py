@@ -31,8 +31,11 @@ class Config:
     @classmethod
     def validate(cls):
         """Validates that critical configurations are set."""
-        # Ensure logs directory exists
-        cls.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        # Ensure logs directory exists (safeguarded for read-only cloud filesystems)
+        try:
+            cls.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
         
         if not cls.GEMINI_API_KEY or cls.GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
             print("WARNING: GEMINI_API_KEY is not set or is using the default placeholder in .env!")
