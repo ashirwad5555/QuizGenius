@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizGenius | AI-Powered RAG Quiz Builder</title>
+    <meta name="description" content="Generate instant, factual, multiple-choice quizzes on any topic using Wikipedia-backed Retrieval-Augmented Generation and Google Gemini 2.5 Flash.">
+    
+    <!-- Professional SVG Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%233b82f6'/%3E%3Cstop offset='100%25' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='25' fill='url(%23g)'/%3E%3Ctext x='50%25' y='68%25' font-family='system-ui, sans-serif' font-weight='800' font-size='56' fill='white' text-anchor='middle'%3EQ%3C/text%3E%3Ccircle cx='75' cy='25' r='8' fill='%2338bdf8'/%3E%3C/svg%3E">
+    
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-layout">
+        <!-- Sidebar for Quiz History -->
+        <aside class="history-sidebar" id="history-sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Quiz History</h3>
+                <button class="close-sidebar-btn" id="close-sidebar-btn" aria-label="Close History">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <ul class="history-list" id="history-list">
+                    <!-- History items will be injected here by JS -->
+                    <li class="empty-history-msg">No quizzes taken yet.</li>
+                </ul>
+            </div>
+            <div class="sidebar-footer">
+                <button class="btn btn-danger btn-block" id="clear-history-btn">
+                    <i class="fa-solid fa-trash-can"></i> Clear History
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Navigation / Header -->
+            <header class="app-header">
+                <div class="header-logo">
+                    <div class="logo-icon">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <h1>QuizGenius <span class="badge">RAG AI</span></h1>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="toggle-history-btn">
+                        <i class="fa-solid fa-clock-rotate-left"></i> History
+                    </button>
+                </div>
+            </header>
+
+            <!-- View Container -->
+            <div class="view-container">
+                <!-- 1. HOME VIEW -->
+                <section class="view active" id="home-view">
+                    <div class="welcome-card text-center">
+                        <h2 class="display-title">AI Powered Knowledge Quiz Builder</h2>
+                        <p class="subtitle">Enter any topic, and our AI will retrieve factual reference material from Wikipedia to craft a custom 5-question multiple choice quiz.</p>
+                        
+                        <!-- Topic Input Form -->
+                        <form class="topic-form" id="quiz-generation-form">
+                            <div class="input-group">
+                                <i class="fa-solid fa-magnifying-glass input-icon"></i>
+                                <input type="text" id="topic-input" placeholder="e.g., Photosynthesis, Neural Networks, Ancient Rome..." required autocomplete="off">
+                            </div>
+                            
+                            <!-- Topic Examples -->
+                            <div class="example-container">
+                                <span class="example-label">Try these:</span>
+                                <div class="example-tags">
+                                    <button type="button" class="example-tag-btn" data-topic="Photosynthesis">Photosynthesis</button>
+                                    <button type="button" class="example-tag-btn" data-topic="Neural Networks">Neural Networks</button>
+                                    <button type="button" class="example-tag-btn" data-topic="Ancient Rome">Ancient Rome</button>
+                                    <button type="button" class="example-tag-btn" data-topic="Quantum Mechanics">Quantum Mechanics</button>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg btn-generate" id="generate-btn">
+                                <span>Generate Quiz</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- 2. LOADING VIEW -->
+                <section class="view" id="loading-view">
+                    <div class="loading-card text-center">
+                        <div class="spinner-container">
+                            <div class="spinner"></div>
+                            <div class="spinner-glow"></div>
+                        </div>
+                        <h3 id="loading-title">Retrieving Knowledge</h3>
+                        <p class="loading-subtitle" id="loading-status">Searching Wikipedia for reference material...</p>
+                        
+                        <div class="loading-steps">
+                            <div class="step-item active" id="step-wiki">
+                                <i class="fa-solid fa-circle-check step-icon"></i>
+                                <span>Wikipedia Retrieval</span>
+                            </div>
+                            <div class="step-item" id="step-context">
+                                <i class="fa-solid fa-circle-check step-icon"></i>
+                                <span>Context Injection</span>
+                            </div>
+                            <div class="step-item" id="step-gemini">
+                                <i class="fa-solid fa-circle-check step-icon"></i>
+                                <span>QuizGenius Quiz Synthesis</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. ERROR VIEW -->
+                <section class="view" id="error-view">
+                    <div class="error-card text-center">
+                        <div class="error-icon">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <h2 id="error-title">Generation Failed</h2>
+                        <p class="error-message" id="error-message">We couldn't find a Wikipedia page matching your topic. Please check the spelling and try again.</p>
+                        <div class="error-details" id="error-details"></div>
+                        
+                        <div class="error-actions">
+                            <button class="btn btn-secondary" id="error-back-btn">
+                                <i class="fa-solid fa-arrow-left"></i> Go Back
+                            </button>
+                            <button class="btn btn-primary" id="error-retry-btn">
+                                <i class="fa-solid fa-rotate-right"></i> Retry
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. QUIZ VIEW -->
+                <section class="view" id="quiz-view">
+                    <div class="quiz-container">
+                        <div class="quiz-meta-card">
+                            <div class="quiz-meta-info">
+                                <span class="quiz-topic-tag" id="quiz-topic-display">Photosynthesis</span>
+                                <h2>Knowledge Assessment</h2>
+                            </div>
+                            <div class="quiz-progress-bar-container">
+                                <div class="quiz-progress-bar" id="quiz-progress-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Quiz Form -->
+                        <form id="quiz-submission-form">
+                            <div class="questions-list" id="questions-list">
+                                <!-- Questions will be dynamically rendered here by JS -->
+                            </div>
+                            
+                            <div class="quiz-actions">
+                                <button type="button" class="btn btn-secondary" id="quit-quiz-btn">
+                                    <i class="fa-solid fa-xmark"></i> Quit Quiz
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-lg" id="submit-quiz-btn">
+                                    <span>Submit Answers</span>
+                                    <i class="fa-solid fa-check-double"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- 5. RESULTS VIEW -->
+                <section class="view" id="results-view">
+                    <div class="results-container">
+                        <!-- Score Card -->
+                        <div class="score-card text-center">
+                            <h2>Quiz Completed!</h2>
+                            <p class="results-topic">Topic: <span id="results-topic-display">Photosynthesis</span></p>
+                            
+                            <!-- Circular Score Progress -->
+                            <div class="score-circle-container">
+                                <svg class="score-svg" viewBox="0 0 120 120">
+                                    <circle class="score-circle-bg" cx="60" cy="60" r="54" stroke-width="8" fill="none"/>
+                                    <circle class="score-circle-val" id="score-circle-val" cx="60" cy="60" r="54" stroke-width="8" fill="none" stroke-dasharray="339.29" stroke-dashoffset="339.29"/>
+                                </svg>
+                                <div class="score-text">
+                                    <span class="score-number" id="score-number-display">0/5</span>
+                                    <span class="score-percentage" id="score-percent-display">0%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="score-badge" id="score-feedback-badge">Good Effort!</div>
+                        </div>
+
+                        <!-- Detailed Review Section -->
+                        <div class="review-section">
+                            <h3><i class="fa-solid fa-square-poll-vertical"></i> Detailed Review</h3>
+                            <div class="review-list" id="review-list">
+                                <!-- Review items will be injected here by JS -->
+                            </div>
+                        </div>
+
+                        <div class="results-actions">
+                            <button class="btn btn-secondary" id="results-home-btn">
+                                <i class="fa-solid fa-house"></i> Build Another Quiz
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="js/app.js"></script>
+</body>
+</html>
