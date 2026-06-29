@@ -10,7 +10,7 @@ class Config:
     """Application configuration loaded from environment variables."""
     
     # Gemini API Configuration
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip("'\"")
     
     # Flask Configuration
     PORT = int(os.getenv("FLASK_PORT", 5000))
@@ -23,9 +23,17 @@ class Config:
         "QuizBuilderApp/1.0 (contact@example.com)"
     )
 
+    # Path Configurations
+    BASE_DIR = Path(__file__).resolve().parent
+    PROMPT_PATH = BASE_DIR / 'prompts' / 'quiz_prompt.txt'
+    LOGS_DIR = BASE_DIR / 'logs'
+
     @classmethod
     def validate(cls):
         """Validates that critical configurations are set."""
+        # Ensure logs directory exists
+        cls.LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        
         if not cls.GEMINI_API_KEY or cls.GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
             print("WARNING: GEMINI_API_KEY is not set or is using the default placeholder in .env!")
             return False

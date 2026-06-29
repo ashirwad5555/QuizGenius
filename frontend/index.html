@@ -21,7 +21,13 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- App Container -->
+    <!-- Confetti Container for Celebrations -->
+    <div class="confetti-container" id="confetti-container"></div>
+
+    <!-- Sidebar Overlay for closing the sidebar when clicking outside -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- App Layout -->
     <div class="app-layout">
         <!-- Sidebar for Quiz History -->
         <aside class="history-sidebar" id="history-sidebar">
@@ -33,7 +39,6 @@
             </div>
             <div class="sidebar-content">
                 <ul class="history-list" id="history-list">
-                    <!-- History items will be injected here by JS -->
                     <li class="empty-history-msg">No quizzes taken yet.</li>
                 </ul>
             </div>
@@ -55,6 +60,10 @@
                     <h1>QuizGenius <span class="badge">RAG AI</span></h1>
                 </div>
                 <div class="header-actions">
+                    <!-- Light/Dark Mode Toggle (Feature 15) -->
+                    <button class="btn btn-icon btn-secondary" id="theme-toggle-btn" aria-label="Toggle Theme" title="Toggle Light/Dark Mode">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
                     <button class="btn btn-secondary" id="toggle-history-btn">
                         <i class="fa-solid fa-clock-rotate-left"></i> History
                     </button>
@@ -67,13 +76,33 @@
                 <section class="view active" id="home-view">
                     <div class="welcome-card text-center">
                         <h2 class="display-title">AI Powered Knowledge Quiz Builder</h2>
-                        <p class="subtitle">Enter any topic, and our AI will retrieve factual reference material from Wikipedia to craft a custom 5-question multiple choice quiz.</p>
+                        <p class="subtitle">Enter any topic, select your difficulty, and our AI will retrieve factual reference material from Wikipedia to craft a custom 5-question multiple choice quiz.</p>
                         
                         <!-- Topic Input Form -->
                         <form class="topic-form" id="quiz-generation-form">
                             <div class="input-group">
                                 <i class="fa-solid fa-magnifying-glass input-icon"></i>
-                                <input type="text" id="topic-input" placeholder="e.g., Photosynthesis, Neural Networks, Ancient Rome..." required autocomplete="off">
+                                <input type="text" id="topic-input" placeholder="e.g., Photosynthesis, Neural Networks, Ancient Rome..." required autocomplete="off" maxlength="60">
+                                <span id="char-counter" class="char-counter">0 / 60</span>
+                            </div>
+                            
+                            <!-- Difficulty Level Selection (Feature 1) -->
+                            <div class="difficulty-container">
+                                <span class="difficulty-label">Difficulty Level:</span>
+                                <div class="difficulty-options">
+                                    <label class="diff-option">
+                                        <input type="radio" name="difficulty" value="Easy" id="diff-easy">
+                                        <span class="diff-card"><i class="fa-solid fa-seedling"></i> Easy</span>
+                                    </label>
+                                    <label class="diff-option">
+                                        <input type="radio" name="difficulty" value="Medium" id="diff-medium" checked>
+                                        <span class="diff-card"><i class="fa-solid fa-graduation-cap"></i> Medium</span>
+                                    </label>
+                                    <label class="diff-option">
+                                        <input type="radio" name="difficulty" value="Hard" id="diff-hard">
+                                        <span class="diff-card"><i class="fa-solid fa-brain"></i> Hard</span>
+                                    </label>
+                                </div>
                             </div>
                             
                             <!-- Topic Examples -->
@@ -104,6 +133,9 @@
                         </div>
                         <h3 id="loading-title">Retrieving Knowledge</h3>
                         <p class="loading-subtitle" id="loading-status">Searching Wikipedia for reference material...</p>
+                        
+                        <!-- Response Timer -->
+                        <div class="loading-timer" id="loading-timer">Response Time: 0.0s</div>
                         
                         <div class="loading-steps">
                             <div class="step-item active" id="step-wiki">
@@ -147,8 +179,14 @@
                 <section class="view" id="quiz-view">
                     <div class="quiz-container">
                         <div class="quiz-meta-card">
-                            <div class="quiz-meta-info">
-                                <span class="quiz-topic-tag" id="quiz-topic-display">Photosynthesis</span>
+                            <div class="quiz-meta-info-row">
+                                <div class="quiz-meta-tags">
+                                    <span class="quiz-topic-tag" id="quiz-topic-display">Photosynthesis</span>
+                                    <span class="quiz-diff-tag" id="quiz-diff-display">Medium</span>
+                                </div>
+                                <span class="progress-text" id="progress-text">Question 1 of 5</span>
+                            </div>
+                            <div class="quiz-meta-title-row">
                                 <h2>Knowledge Assessment</h2>
                             </div>
                             <div class="quiz-progress-bar-container">
@@ -178,10 +216,10 @@
                 <!-- 5. RESULTS VIEW -->
                 <section class="view" id="results-view">
                     <div class="results-container">
-                        <!-- Score Card -->
+                        <!-- Score Dashboard Card (Feature 9) -->
                         <div class="score-card text-center">
                             <h2>Quiz Completed!</h2>
-                            <p class="results-topic">Topic: <span id="results-topic-display">Photosynthesis</span></p>
+                            <p class="results-topic">Topic: <span id="results-topic-display">Photosynthesis</span> (<span id="results-diff-display">Medium</span>)</p>
                             
                             <!-- Circular Score Progress -->
                             <div class="score-circle-container">
@@ -196,20 +234,92 @@
                             </div>
                             
                             <div class="score-badge" id="score-feedback-badge">Good Effort!</div>
+
+                            <!-- Performance Stats Dashboard -->
+                            <div class="stats-dashboard">
+                                <div class="stat-item">
+                                    <span class="stat-label">Correct</span>
+                                    <span class="stat-value text-success" id="stat-correct-count">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Incorrect</span>
+                                    <span class="stat-value text-danger" id="stat-wrong-count">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Accuracy</span>
+                                    <span class="stat-value text-primary" id="stat-accuracy-percent">0%</span>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Knowledge Insights (Feature 10) -->
+                        <div class="insights-card" id="insights-card">
+                            <h3><i class="fa-solid fa-chart-line"></i> Knowledge Insights</h3>
+                            <div class="insights-grid">
+                                <div class="insight-block">
+                                    <h5><i class="fa-solid fa-circle-check text-success"></i> Strengths</h5>
+                                    <ul class="insight-list" id="insights-strengths">
+                                        <li>No strengths identified yet.</li>
+                                    </ul>
+                                </div>
+                                <div class="insight-block">
+                                    <h5><i class="fa-solid fa-circle-xmark text-danger"></i> Weak Areas</h5>
+                                    <ul class="insight-list" id="insights-weaknesses">
+                                        <li>No weak areas identified.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="revision-box" id="insights-revision">
+                                <strong>Suggested Revision:</strong> Select a topic above to begin.
+                            </div>
+                        </div>
+
+                        <!-- RAG Context Viewer Accordion on Results Page -->
+                        <details class="context-accordion" id="results-context-accordion">
+                            <summary class="context-summary">
+                                <span class="summary-text"><i class="fa-solid fa-circle-info"></i> View Retrieved Context</span>
+                                <span class="badge badge-rag"><i class="fa-solid fa-circle-nodes"></i> RAG Context Injected</span>
+                            </summary>
+                            <div class="context-content">
+                                <p class="context-source"><strong>Source:</strong> Wikipedia Summary</p>
+                                <p class="context-text" id="results-context-text-display">Context text will appear here...</p>
+                            </div>
+                        </details>
 
                         <!-- Detailed Review Section -->
                         <div class="review-section">
-                            <h3><i class="fa-solid fa-square-poll-vertical"></i> Detailed Review</h3>
+                            <div class="review-header-row">
+                                <h3><i class="fa-solid fa-square-poll-vertical"></i> Detailed Review</h3>
+                                <div class="review-actions-quick">
+                                    <button class="btn btn-sm btn-secondary" id="copy-quiz-btn" title="Copy Quiz Questions">
+                                        <i class="fa-solid fa-copy"></i> Copy Quiz
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" id="copy-explanations-btn" title="Copy Quiz and Explanations">
+                                        <i class="fa-solid fa-file-invoice"></i> Copy Explanations
+                                    </button>
+                                </div>
+                            </div>
                             <div class="review-list" id="review-list">
                                 <!-- Review items will be injected here by JS -->
                             </div>
                         </div>
 
-                        <div class="results-actions">
+                        <!-- Results Page Action Buttons -->
+                        <div class="results-actions-grid">
                             <button class="btn btn-secondary" id="results-home-btn">
-                                <i class="fa-solid fa-house"></i> Build Another Quiz
+                                <i class="fa-solid fa-house"></i> New Topic
                             </button>
+                            <button class="btn btn-secondary" id="regenerate-quiz-btn">
+                                <i class="fa-solid fa-arrows-rotate"></i> Generate Another Quiz
+                            </button>
+                            <div class="export-dropdown-container">
+                                <button class="btn btn-primary" id="export-pdf-btn">
+                                    <i class="fa-solid fa-file-pdf"></i> Export PDF
+                                </button>
+                                <button class="btn btn-secondary" id="export-json-btn">
+                                    <i class="fa-solid fa-file-code"></i> Export JSON
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </section>

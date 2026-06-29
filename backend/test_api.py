@@ -1,9 +1,10 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import json
+import requests
 
 from app import create_app
-from services.wikipedia_service import WikipediaService, TopicNotFoundError
+from services.wikipedia_service import WikipediaService, TopicNotFoundError, WikipediaConnectionError
 from services.quiz_service import QuizService, MalformedQuizError
 from utils.prompt_builder import PromptBuilder
 
@@ -20,18 +21,20 @@ class TestQuizBuilderBackend(unittest.TestCase):
     # UNIT TESTS: PROMPT BUILDER
     # ==========================================================================
     def test_prompt_builder(self):
-        """Test that the prompt builder correctly injects Wikipedia summaries."""
+        """Test that the prompt builder correctly injects Wikipedia summaries and difficulty."""
         test_summary = "Photosynthesis is a process used by plants."
-        prompt = PromptBuilder.build_quiz_prompt(test_summary)
+        prompt = PromptBuilder.build_quiz_prompt(test_summary, "Photosynthesis", "Hard")
         
+        self.assertIn("Photosynthesis", prompt)
+        self.assertIn("Hard", prompt)
         self.assertIn("Photosynthesis is a process used by plants.", prompt)
-        self.assertIn("Generate exactly five multiple choice questions.", prompt)
+        self.assertIn("Generate exactly five multiple choice questions", prompt)
         self.assertIn("Return ONLY valid JSON.", prompt)
 
     # ==========================================================================
     # UNIT TESTS: WIKIPEDIA SERVICE
     # ==========================================================================
-    @patch('backend.services.wikipedia_service.requests.get')
+    @patch('services.wikipedia_service.requests.get')
     def test_wikipedia_service_search_success(self, mock_get):
         """Test Wikipedia search resolves to a page title successfully."""
         # Mock Wikipedia search response
@@ -50,7 +53,7 @@ class TestQuizBuilderBackend(unittest.TestCase):
         resolved_title = service.search_topic("photosynthesis")
         self.assertEqual(resolved_title, "Photosynthesis")
 
-    @patch('backend.services.wikipedia_service.requests.get')
+    @patch('services.wikipedia_service.requests.get')
     def test_wikipedia_service_search_not_found(self, mock_get):
         """Test Wikipedia search raises TopicNotFoundError when no results match."""
         # Mock empty search results
@@ -66,6 +69,15 @@ class TestQuizBuilderBackend(unittest.TestCase):
         service = WikipediaService()
         with self.assertRaises(TopicNotFoundError):
             service.search_topic("nonexistent_topic_xyz")
+
+    @patch('services.wikipedia_service.requests.get')
+    def test_wikipedia_service_connection_error(self, mock_get):
+        """Test Wikipedia search raises WikipediaConnectionError on network failure."""
+        mock_get.side_effect = requests.RequestException("Connection timed out")
+
+        service = WikipediaService()
+        with self.assertRaises(WikipediaConnectionError):
+            service.search_topic("photosynthesis")
 
     # ==========================================================================
     # UNIT & INTEGRATION TESTS: QUIZ SERVICE & VALIDATION

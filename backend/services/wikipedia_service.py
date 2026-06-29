@@ -7,6 +7,10 @@ class TopicNotFoundError(Exception):
     """Exception raised when a topic is not found on Wikipedia."""
     pass
 
+class WikipediaConnectionError(Exception):
+    """Exception raised when the server cannot connect to Wikipedia due to network/DNS issues."""
+    pass
+
 class WikipediaService:
     """Service to interact with the Wikipedia API for search and retrieval."""
     
@@ -55,34 +59,59 @@ class WikipediaService:
                 
             except requests.RequestException as e:
                 if attempt == retries - 1:
-                    raise Exception(f"Failed to connect to Wikipedia Search API after {retries} attempts: {str(e)}")
+                    raise WikipediaConnectionError(f"Failed to connect to Wikipedia Search API after {retries} attempts: {str(e)}")
                 time.sleep(backoff)
                 backoff *= 2
 
     def fetch_summary(self, topic: str) -> dict:
         """
-        Retrieves the summary of a topic. It first resolves the topic using search_topic,
-        then fetches the summary of the resolved page.
+        Retrieves the summary of a topic using a single optimized MediaWiki API request.
+        It uses a search generator to search, resolve redirects, and fetch the plain text extract (summary)
+        of the first search result.
         Returns a dictionary containing the resolved title and the summary text.
         Attempts up to 3 times with exponential backoff on network failure.
         """
         if not topic or not topic.strip():
             raise ValueError("Topic cannot be empty.")
 
-        # 1. Resolve the topic to the best matching Wikipedia page title
-        resolved_title = self.search_topic(topic.strip())
+        query = topic.strip()
+        params = {
+            "action": "query",
+            "generator": "search",
+            "gsrsearch": query,
+            "gsrlimit": 1,
+            "prop": "extracts",
+            "exintro": 1,
+            "explaintext": 1,
+            "redirects": 1,
+            "format": "json"
+        }
+        
+        headers = {
+            "User-Agent": Config.WIKIPEDIA_USER_AGENT
+        }
 
-        # 2. Fetch the page content with retries
         retries = 3
         backoff = 1.0
         for attempt in range(retries):
             try:
-                page = self.wiki.page(resolved_title)
-                if not page.exists():
-                    raise TopicNotFoundError(f"Wikipedia page for '{resolved_title}' does not exist.")
+                response = requests.get(self.search_url, params=params, headers=headers, timeout=10)
+                response.raise_for_status()
+                data = response.json()
                 
-                # We fetch the summary, which is usually the introduction paragraphs.
-                summary_text = page.summary
+                pages = data.get("query", {}).get("pages", {})
+                if not pages:
+                    raise TopicNotFoundError(f"No Wikipedia article found matching '{query}'.")
+                
+                # Get the first page in the dictionary
+                page_id = list(pages.keys())[0]
+                page_data = pages[page_id]
+                
+                if page_id == "-1" or "missing" in page_data:
+                    raise TopicNotFoundError(f"No Wikipedia article found matching '{query}'.")
+                
+                resolved_title = page_data.get("title")
+                summary_text = page_data.get("extract", "")
                 
                 if not summary_text or len(summary_text.strip()) < 50:
                     raise TopicNotFoundError(f"The Wikipedia article '{resolved_title}' has insufficient content.")
@@ -92,10 +121,8 @@ class WikipediaService:
                     "summary": summary_text
                 }
                 
-            except Exception as e:
-                if isinstance(e, TopicNotFoundError):
-                    raise
+            except requests.RequestException as e:
                 if attempt == retries - 1:
-                    raise Exception(f"Failed to fetch Wikipedia page content for '{resolved_title}' after {retries} attempts: {str(e)}")
+                    raise WikipediaConnectionError(f"Failed to connect to Wikipedia API after {retries} attempts: {str(e)}")
                 time.sleep(backoff)
                 backoff *= 2

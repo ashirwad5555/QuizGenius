@@ -1,0 +1,120 @@
+[2026-06-29 15:39:44,516] INFO in quiz_routes (13908): API Request: Generate quiz on topic='Neural Networks', difficulty='Hard'
+[2026-06-29 15:39:49,662] ERROR in quiz_routes (13908): Unexpected Error generating quiz for 'Neural Networks': Failed to connect to Wikipedia Search API after 3 attempts: 429 Client Error: Too Many Requests for url: https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=Neural+Networks&utf8=1&format=json&srlimit=1
+Traceback (most recent call last):
+  File "D:\Entrata\quiz-builder\backend\services\wikipedia_service.py", line 46, in search_topic
+    response.raise_for_status()
+  File "D:\Entrata\quiz-builder\backend\venv\Lib\site-packages\requests\models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 429 Client Error: Too Many Requests for url: https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=Neural+Networks&utf8=1&format=json&srlimit=1
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Entrata\quiz-builder\backend\routes\quiz_routes.py", line 54, in generate_quiz
+    result = quiz_service.generate_quiz_for_topic(topic, difficulty)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Entrata\quiz-builder\backend\services\quiz_service.py", line 33, in generate_quiz_for_topic
+    wiki_data = self.wikipedia_service.fetch_summary(topic)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Entrata\quiz-builder\backend\services\wikipedia_service.py", line 73, in fetch_summary
+    resolved_title = self.search_topic(topic.strip())
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Entrata\quiz-builder\backend\services\wikipedia_service.py", line 58, in search_topic
+    raise Exception(f"Failed to connect to Wikipedia Search API after {retries} attempts: {str(e)}")
+Exception: Failed to connect to Wikipedia Search API after 3 attempts: 429 Client Error: Too Many Requests for url: https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=Neural+Networks&utf8=1&format=json&srlimit=1
+[2026-06-29 15:42:00,732] INFO in quiz_routes (8252): API Request: Generate quiz on topic='InvalidTopic', difficulty='Medium'
+[2026-06-29 15:42:00,732] INFO in quiz_routes (8252): API Request: Generate quiz on topic='InvalidTopic', difficulty='Medium'
+[2026-06-29 15:42:00,732] INFO in quiz_routes (8252): API Request: Generate quiz on topic='InvalidTopic', difficulty='Medium'
+[2026-06-29 15:42:00,732] WARNING in quiz_routes (8252): Topic Not Found on Wikipedia: 'InvalidTopic'
+[2026-06-29 15:42:00,732] WARNING in quiz_routes (8252): Topic Not Found on Wikipedia: 'InvalidTopic'
+[2026-06-29 15:42:00,732] WARNING in quiz_routes (8252): Topic Not Found on Wikipedia: 'InvalidTopic'
+[2026-06-29 15:42:00,732] INFO in quiz_routes (8252): API Request: Generate quiz on topic='Photosynthesis', difficulty='Hard'
+[2026-06-29 15:42:00,732] INFO in quiz_routes (8252): API Request: Generate quiz on topic='Photosynthesis', difficulty='Hard'
+[2026-06-29 15:42:00,732] INFO in quiz_routes (8252): API Request: Generate quiz on topic='Photosynthesis', difficulty='Hard'
+[2026-06-29 15:42:00,732] INFO in quiz_routes (8252): API Request: Generate quiz on topic='Photosynthesis', difficulty='Hard'
+[2026-06-29 15:42:50,689] INFO in quiz_routes (15520): API Request: Generate quiz on topic='Ancient Rome', difficulty='Hard'
+[2026-06-29 15:42:53,724] INFO in quiz_service (15520): Generating quiz for 'Ancient Rome' (Difficulty: Hard) - Attempt 1/2
+[2026-06-29 15:42:55,065] ERROR in quiz_service (15520): Attempt 1 failed due to Gemini API Error: Gemini API invocation failed: 401 Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. [reason: "ACCESS_TOKEN_TYPE_UNSUPPORTED"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+metadata {
+  key: "method"
+  value: "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+}
+]
+[2026-06-29 15:42:56,066] INFO in quiz_service (15520): Generating quiz for 'Ancient Rome' (Difficulty: Hard) - Attempt 2/2
+[2026-06-29 15:42:56,187] ERROR in quiz_service (15520): Attempt 2 failed due to Gemini API Error: Gemini API invocation failed: 401 Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. [reason: "ACCESS_TOKEN_TYPE_UNSUPPORTED"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+metadata {
+  key: "method"
+  value: "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+}
+]
+[2026-06-29 15:42:56,188] ERROR in quiz_service (15520): Failed to generate quiz for 'Ancient Rome' after 2 attempts in 5.50s. Error: Gemini API invocation failed: 401 Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. [reason: "ACCESS_TOKEN_TYPE_UNSUPPORTED"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+metadata {
+  key: "method"
+  value: "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+}
+]
+[2026-06-29 15:42:56,188] ERROR in quiz_routes (15520): Gemini Error generating quiz for 'Ancient Rome': Gemini API invocation failed: 401 Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. [reason: "ACCESS_TOKEN_TYPE_UNSUPPORTED"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+metadata {
+  key: "method"
+  value: "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+}
+]
+[2026-06-29 15:45:16,393] INFO in quiz_routes (12356): API Request: Generate quiz on topic='Quantum Mechanics', difficulty='Hard'
+[2026-06-29 15:45:19,414] INFO in quiz_service (12356): Generating quiz for 'Quantum mechanics' (Difficulty: Hard) - Attempt 1/2
+[2026-06-29 15:45:20,046] ERROR in quiz_service (12356): Attempt 1 failed due to Gemini API Error: Gemini API invocation failed: 401 Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. [reason: "ACCESS_TOKEN_TYPE_UNSUPPORTED"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+metadata {
+  key: "method"
+  value: "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+}
+]
+[2026-06-29 15:45:21,058] INFO in quiz_service (12356): Generating quiz for 'Quantum mechanics' (Difficulty: Hard) - Attempt 2/2
+[2026-06-29 15:45:21,186] ERROR in quiz_service (12356): Attempt 2 failed due to Gemini API Error: Gemini API invocation failed: 401 Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. [reason: "ACCESS_TOKEN_TYPE_UNSUPPORTED"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+metadata {
+  key: "method"
+  value: "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+}
+]
+[2026-06-29 15:45:21,186] ERROR in quiz_service (12356): Failed to generate quiz for 'Quantum mechanics' after 2 attempts in 4.79s. Error: Gemini API invocation failed: 401 Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. [reason: "ACCESS_TOKEN_TYPE_UNSUPPORTED"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+metadata {
+  key: "method"
+  value: "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+}
+]
+[2026-06-29 15:45:21,187] ERROR in quiz_routes (12356): Gemini Error generating quiz for 'Quantum Mechanics': Gemini API invocation failed: 401 Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project. [reason: "ACCESS_TOKEN_TYPE_UNSUPPORTED"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+metadata {
+  key: "method"
+  value: "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+}
+]

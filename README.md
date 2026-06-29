@@ -201,5 +201,6 @@ We configure the Gemini API call with `response_mime_type="application/json"`. R
 2. **User Authentication**: Add login capabilities so users can sync their quiz history across devices.
 3. **Custom Quiz Settings**: Allow users to select difficulty level, number of questions, and language.
 4. **Export Quiz**: Support downloading quizzes as PDFs or sharing links with students.
-#   Q u i z G e n i u s  
+#   Q u i z G e n i u s 
+ 
  

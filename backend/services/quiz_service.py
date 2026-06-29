@@ -1,7 +1,11 @@
 import json
+import time
+import logging
 from services.wikipedia_service import WikipediaService, TopicNotFoundError
 from services.gemini_service import GeminiService, GeminiError
 from utils.prompt_builder import PromptBuilder
+
+logger = logging.getLogger("quiz_builder")
 
 class MalformedQuizError(Exception):
     """Exception raised when the quiz JSON structure is invalid or incomplete."""
@@ -14,41 +18,70 @@ class QuizService:
         self.wikipedia_service = WikipediaService()
         self.gemini_service = GeminiService()
 
-    def generate_quiz_for_topic(self, topic: str) -> dict:
+    def generate_quiz_for_topic(self, topic: str, difficulty: str = "Medium") -> dict:
         """
         Coordinates the RAG quiz generation flow:
         1. Fetch summary from Wikipedia.
-        2. Build prompt with summary.
-        3. Call Gemini to generate quiz JSON.
+        2. Build prompt with summary and difficulty.
+        3. Call Gemini to generate quiz JSON (with 1 automatic retry on failure).
         4. Parse and validate the quiz JSON.
-        Returns a dict: { "topic": resolved_title, "questions": [...] }
+        Returns a dict: { "topic": resolved_title, "questions": [...], "context": summary }
         """
+        start_time = time.time()
+        
         # 1. Retrieve Wikipedia summary
         wiki_data = self.wikipedia_service.fetch_summary(topic)
         resolved_title = wiki_data["title"]
         summary = wiki_data["summary"]
 
         # 2. Build the prompt
-        prompt = PromptBuilder.build_quiz_prompt(summary)
+        prompt = PromptBuilder.build_quiz_prompt(summary, resolved_title, difficulty)
 
-        # 3. Generate quiz using Gemini
-        raw_json_str = self.gemini_service.generate_quiz(prompt)
-
-        # 4. Parse and validate the response
-        try:
-            quiz_data = json.loads(raw_json_str)
-        except json.JSONDecodeError as e:
-            raise MalformedQuizError(f"Failed to parse quiz response as JSON: {str(e)}")
-
-        # Validate quiz data structure
-        validated_questions = self._validate_quiz_structure(quiz_data)
+        # 3. Generate quiz using Gemini (with automatic retry once on JSON failure)
+        max_attempts = 2
+        last_error = None
         
-        return {
-            "topic": resolved_title,
-            "questions": validated_questions
-        }
+        for attempt in range(1, max_attempts + 1):
+            try:
+                logger.info(f"Generating quiz for '{resolved_title}' (Difficulty: {difficulty}) - Attempt {attempt}/{max_attempts}")
+                raw_json_str = self.gemini_service.generate_quiz(prompt)
+                
+                # 4. Parse and validate the response
+                quiz_data = json.loads(raw_json_str)
+                validated_questions = self._validate_quiz_structure(quiz_data, resolved_title)
+                
+                duration = time.time() - start_time
+                logger.info(f"Successfully generated quiz for '{resolved_title}' in {duration:.2f}s on attempt {attempt}")
+                
+                return {
+                    "topic": resolved_title,
+                    "difficulty": difficulty,
+                    "questions": validated_questions,
+                    "context": summary,
+                    "generation_time": round(duration, 2)
+                }
+                
+            except (json.JSONDecodeError, MalformedQuizError) as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt} failed due to malformed quiz JSON: {str(e)}")
+                if attempt < max_attempts:
+                    logger.info("Retrying quiz generation with Gemini...")
+                    time.sleep(1) # Brief pause before retry
+            except GeminiError as e:
+                last_error = e
+                logger.error(f"Attempt {attempt} failed due to Gemini API Error: {str(e)}")
+                if attempt < max_attempts:
+                    time.sleep(1)
 
-    def _validate_quiz_structure(self, quiz_data) -> list:
+        # If we reached here, both attempts failed
+        duration = time.time() - start_time
+        logger.error(f"Failed to generate quiz for '{resolved_title}' after {max_attempts} attempts in {duration:.2f}s. Error: {str(last_error)}")
+        
+        if isinstance(last_error, json.JSONDecodeError):
+            raise MalformedQuizError(f"AI returned invalid JSON: {str(last_error)}")
+        raise last_error
+
+    def _validate_quiz_structure(self, quiz_data, default_category: str) -> list:
         """
         Validates the structure of the generated quiz.
         Expects a list of dictionaries with specific keys.
@@ -57,8 +90,7 @@ class QuizService:
             raise MalformedQuizError("Quiz response is not a JSON list.")
             
         if len(quiz_data) != 5:
-            # We want exactly 5 questions
-            print(f"Warning: LLM generated {len(quiz_data)} questions instead of 5. Proceeding with validation.")
+            logger.warning(f"Gemini generated {len(quiz_data)} questions instead of 5.")
 
         validated = []
         required_keys = {"question", "options", "correctAnswer", "explanation"}
@@ -76,6 +108,8 @@ class QuizService:
             options = q["options"]
             correct_answer = q["correctAnswer"]
             explanation = q["explanation"]
+            # Fallback for category if missing
+            category = q.get("category", default_category)
 
             # Validate types and values
             if not isinstance(question_text, str) or not question_text.strip():
@@ -93,8 +127,7 @@ class QuizService:
 
             # Make sure correct_answer matches one of the options
             if correct_answer not in options:
-                # Sometimes the LLM might write the correct answer slightly differently,
-                # let's do a case-insensitive check and try to align them, or raise error.
+                # Case-insensitive alignment fallback
                 matched_option = None
                 for opt in options:
                     if opt.lower().strip() == correct_answer.lower().strip():
@@ -104,20 +137,23 @@ class QuizService:
                     correct_answer = matched_option
                 else:
                     raise MalformedQuizError(
-                        f"Correct answer '{correct_answer}' at index {idx} does not match any of the options: {options}"
+                        f"Correct answer '{correct_answer}' at index {idx} does not match any of the options."
                     )
 
             if not isinstance(explanation, str) or not explanation.strip():
                 raise MalformedQuizError(f"Explanation at index {idx} must be a non-empty string.")
 
+            if not isinstance(category, str) or not category.strip():
+                category = default_category
+
             validated.append({
                 "question": question_text.strip(),
                 "options": [opt.strip() for opt in options],
                 "correctAnswer": correct_answer,
-                "explanation": explanation.strip()
+                "explanation": explanation.strip(),
+                "category": category.strip()
             })
 
-        # Cap at exactly 5 questions if more were generated, or raise error if too few
         if len(validated) < 3:
             raise MalformedQuizError(f"Generated quiz only contains {len(validated)} valid questions (minimum 3 required).")
             
